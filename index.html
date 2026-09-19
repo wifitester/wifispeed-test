@@ -1,848 +1,329 @@
+
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PulseSpeed - Interactive Wi-Fi Speed Tester</title>
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter & JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome Icons CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wi-Fi Speed Test</title>
+  <style>
+    :root {
+      --bg-color: #0d1117;
+      --card-bg: #161b22;
+      --accent-color: #00f2fe;
+      --accent-glow: rgba(0, 242, 254, 0.35);
+      --text-main: #f0f6fc;
+      --text-sub: #8b949e;
+      --circle-size: 260px;
+    }
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#ecfeff',
-                            100: '#cff0ff',
-                            400: '#22d3ee',
-                            500: '#06b6d4',
-                            600: '#0891b2',
-                            900: '#164e63',
-                            950: '#082f49',
-                        },
-                        violetGlow: '#8b5cf6',
-                        cyanGlow: '#06b6d4'
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'glow-breath': 'breathGlow 3.5s ease-in-out infinite',
-                        'spin-slow': 'spin 12s linear infinite',
-                    },
-                    keyframes: {
-                        breathGlow: {
-                            '0%, 100%': { 
-                                filter: 'drop-shadow(0 0 15px rgba(6, 182, 212, 0.4)) drop-shadow(0 0 35px rgba(139, 92, 246, 0.2))',
-                                transform: 'scale(1)'
-                            },
-                            '50%': { 
-                                filter: 'drop-shadow(0 0 28px rgba(6, 182, 212, 0.8)) drop-shadow(0 0 60px rgba(139, 92, 246, 0.45))',
-                                transform: 'scale(1.02)'
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
 
-    <style>
-        /* Custom UI Enhancements */
-        body {
-            background-color: #07090e;
-            color: #f3f4f6;
-            overflow-x: hidden;
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
 
-        /* Glassmorphism utility */
-        .glass-card {
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      max-width: 420px;
+      width: 100%;
+    }
 
-        .glass-card-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card-hover:hover {
-            border-color: rgba(6, 182, 212, 0.3);
-            box-shadow: 0 10px 30px -10px rgba(6, 182, 212, 0.15);
-            transform: translateY(-2px);
-        }
+    /* Outer Breathing Circle Container */
+    .gauge-wrapper {
+      position: relative;
+      width: var(--circle-size);
+      height: var(--circle-size);
+      border-radius: 50%;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+      background: radial-gradient(circle, rgba(22,27,34,0.8) 0%, rgba(13,17,23,1) 100%);
+      box-shadow: 0 0 30px var(--accent-glow), inset 0 0 15px var(--accent-glow);
+    }
 
-        /* SVG Circle progress transition */
-        .gauge-ring {
-            transition: stroke-dashoffset 0.12s linear, stroke 0.4s ease;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
+    .gauge-wrapper:hover {
+      transform: scale(1.02);
+    }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #090d16;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #06b6d4;
-        }
-    </style>
+    .gauge-wrapper.testing {
+      animation: pulse-ring 2s infinite ease-in-out;
+      cursor: default;
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 20px var(--accent-glow), inset 0 0 10px var(--accent-glow); }
+      50% { box-shadow: 0 0 50px rgba(0, 242, 254, 0.6), inset 0 0 25px rgba(0, 242, 254, 0.6); }
+      100% { box-shadow: 0 0 20px var(--accent-glow), inset 0 0 10px var(--accent-glow); }
+    }
+
+    /* SVG Ring Overlay */
+    .gauge-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg-circle {
+      fill: none;
+      stroke: #21262d;
+      stroke-width: 8;
+    }
+
+    .gauge-progress-circle {
+      fill: none;
+      stroke: var(--accent-color);
+      stroke-width: 8;
+      stroke-dasharray: 754; /* 2 * PI * 120 */
+      stroke-dashoffset: 754;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s ease;
+    }
+
+    /* Strict Central Layout Lock */
+    .gauge-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      pointer-events: none;
+    }
+
+    .status-text {
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .speed-number {
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .speed-unit {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--accent-color);
+      margin-top: 4px;
+    }
+
+    /* Results Summary Card */
+    .results-card {
+      width: 100%;
+      background-color: var(--card-bg);
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      opacity: 0.4;
+      transition: opacity 0.4s ease;
+    }
+
+    .results-card.active {
+      opacity: 1;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .metric-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between font-sans antialiased selection:bg-brand-500 selection:text-white">
+<body>
 
-    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div class="absolute -top-40 -left-40 w-96 h-96 bg-brand-500/15 rounded-full blur-[120px]"></div>
-        <div class="absolute top-1/3 -right-40 w-96 h-96 bg-violetGlow/15 rounded-full blur-[140px]"></div>
-        <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-cyanGlow/10 rounded-full blur-[120px]"></div>
+  <div class="container">
+    <!-- Touch Triggered Central Circle -->
+    <div class="gauge-wrapper" id="gaugeWrapper">
+      <svg class="gauge-svg" viewBox="0 0 256 256">
+        <circle class="gauge-bg-circle" cx="128" cy="128" r="120"></circle>
+        <circle class="gauge-progress-circle" id="progressCircle" cx="128" cy="128" r="120"></circle>
+      </svg>
+      
+      <!-- Center Aligned Content -->
+      <div class="gauge-content">
+        <div class="status-text" id="statusText">TAP TO START</div>
+        <div class="speed-number" id="speedNumber">0.0</div>
+        <div class="speed-unit" id="speedUnit">Mbps</div>
+      </div>
     </div>
 
-    <header class="relative z-10 border-b border-slate-800/60 glass-card sticky top-0">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <!-- Brand Logo -->
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-violet-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
-                    <i class="fa-solid fa-wifi text-white text-lg"></i>
-                </div>
-                <div>
-                    <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">PulseSpeed</span>
-                    <span class="text-[10px] uppercase font-semibold text-brand-400 bg-brand-950/80 px-2 py-0.5 rounded-full border border-brand-500/30 ml-2 hidden sm:inline-block">Pro v2.4</span>
-                </div>
-            </div>
-
-            <!-- Action Controls -->
-            <div class="flex items-center gap-3">
-                <button id="historyDrawerBtn" class="flex items-center gap-2 px-3.5 py-2 rounded-xl glass-card text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition-all border border-slate-700/50">
-                    <i class="fa-solid fa-clock-rotate-left text-brand-400"></i>
-                    <span class="hidden sm:inline">History</span>
-                    <span id="historyBadge" class="bg-brand-500/20 text-brand-300 text-[10px] px-1.5 py-0.5 rounded-md font-mono">0</span>
-                </button>
-                <button id="settingsBtn" class="p-2.5 rounded-xl glass-card text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all border border-slate-700/50">
-                    <i class="fa-solid fa-gear text-sm"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="relative z-10 max-w-5xl mx-auto px-4 py-8 sm:py-12 flex-1 flex flex-col items-center justify-center gap-10 w-full">
-        
-        <!-- Server / Preset Preset Selector -->
-        <div class="w-full max-w-md flex flex-col items-center gap-2">
-            <label for="networkPreset" class="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                <i class="fa-solid fa-server text-brand-400"></i> Connection Profile Preset
-            </label>
-            <div class="relative w-full">
-                <select id="networkPreset" class="w-full appearance-none glass-card text-slate-200 text-sm font-medium px-4 py-2.5 pr-10 rounded-xl border border-slate-700/60 focus:outline-none focus:border-brand-500 transition-colors cursor-pointer">
-                    <option value="fiber">🚀 Fiber Gigabit (1000 Mbps)</option>
-                    <option value="wifi6" selected>⚡ Ultra Fast Wi-Fi 6 (300 Mbps)</option>
-                    <option value="broadband">🌐 Standard Broadband (100 Mbps)</option>
-                    <option value="mobile5g">📱 5G Mobile Data (60 Mbps)</option>
-                    <option value="public">☕ Public Coffee Shop (15 Mbps)</option>
-                </select>
-                <div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="relative flex flex-col items-center justify-center my-4">
-            
-            <!-- Outer Glowing Pulse Ring Container -->
-            <div id="gaugeContainer" class="relative w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96 rounded-full flex items-center justify-center cursor-pointer select-none group transition-transform duration-300 active:scale-95">
-                
-                <!-- Ambient Backdrop Glow -->
-                <div id="ambientGlow" class="absolute inset-0 rounded-full bg-gradient-to-tr from-brand-500/20 to-violet-500/20 blur-2xl opacity-60 transition-opacity duration-500 group-hover:opacity-100"></div>
-
-                <!-- SVG Progress Arc -->
-                <svg class="w-full h-full p-2 relative z-10 overflow-visible" viewBox="0 0 240 240">
-                    <defs>
-                        <!-- Gradient for Arc -->
-                        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#06b6d4" />
-                            <stop offset="50%" stop-color="#3b82f6" />
-                            <stop offset="100%" stop-color="#8b5cf6" />
-                        </linearGradient>
-                        <!-- Drop Shadow for Path -->
-                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="4" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
-                    </defs>
-
-                    <!-- Background Circle Track -->
-                    <circle 
-                        cx="120" cy="120" r="100" 
-                        stroke="rgba(255, 255, 255, 0.06)" 
-                        stroke-width="12" 
-                        fill="none" 
-                    />
-                    
-                    <!-- Dynamic Progress Circle -->
-                    <circle 
-                        id="gaugeProgress"
-                        class="gauge-ring"
-                        cx="120" cy="120" r="100" 
-                        stroke="url(#gaugeGradient)" 
-                        stroke-width="12" 
-                        stroke-linecap="round"
-                        fill="none" 
-                        stroke-dasharray="628.3"
-                        stroke-dashoffset="628.3"
-                        filter="url(#glow)"
-                    />
-                </svg>
-
-                <!-- Absolute Centered Inner Interactive Button Box -->
-                <div id="gaugeInner" class="absolute inset-4 rounded-full glass-card border border-slate-700/50 flex flex-col items-center justify-center text-center p-6 z-20 shadow-2xl transition-all duration-300 group-hover:border-brand-500/50 animate-glow-breath">
-                    
-                    <!-- IDLE STATE -->
-                    <div id="idleState" class="flex flex-col items-center justify-center gap-3 transition-opacity duration-300">
-                        <div class="w-14 h-14 rounded-full bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 text-2xl group-hover:scale-110 transition-transform duration-300">
-                            <i class="fa-solid fa-play ml-1"></i>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <span class="text-xl sm:text-2xl font-extrabold tracking-wider text-white">TAP TO START</span>
-                            <span class="text-xs font-medium text-slate-400 mt-1">Touch anywhere inside ring</span>
-                        </div>
-                    </div>
-
-                    <!-- TESTING STATE -->
-                    <div id="testingState" class="hidden flex flex-col items-center justify-center w-full h-full">
-                        <!-- Current Phase Status -->
-                        <span id="testStatusLabel" class="text-xs font-bold uppercase tracking-widest text-brand-400 mb-1 flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-brand-400 animate-ping"></span>
-                            <span>INITIALIZING...</span>
-                        </span>
-                        
-                        <!-- Primary Numeric Readout -->
-                        <div class="flex items-baseline justify-center my-1">
-                            <span id="liveSpeedNumber" class="font-mono text-5xl sm:text-6xl font-extrabold text-white tracking-tight leading-none">0.0</span>
-                        </div>
-
-                        <!-- Unit Label -->
-                        <span id="speedUnit" class="text-sm font-semibold text-slate-400 uppercase tracking-wide">Mbps</span>
-
-                        <!-- Mini Sub-Phase Progress Bar -->
-                        <div class="w-28 sm:w-36 h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden p-0.5 border border-slate-700/40">
-                            <div id="phaseProgressBar" class="h-full bg-gradient-to-r from-brand-400 to-violet-500 rounded-full w-0 transition-all duration-100"></div>
-                        </div>
-                    </div>
-
-                    <!-- COMPLETE STATE -->
-                    <div id="completeState" class="hidden flex flex-col items-center justify-center gap-2">
-                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1">
-                            <i class="fa-solid fa-circle-check"></i> TEST COMPLETE
-                        </span>
-                        <div class="flex items-baseline justify-center">
-                            <span id="finalSpeedNumber" class="font-mono text-4xl sm:text-5xl font-extrabold text-white tracking-tight">0.0</span>
-                            <span class="text-sm font-semibold text-slate-400 ml-1.5">Mbps</span>
-                        </div>
-                        <button class="mt-2 text-xs font-semibold text-brand-300 bg-brand-950/80 hover:bg-brand-900 border border-brand-500/30 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5">
-                            <i class="fa-solid fa-rotate-right text-[10px]"></i> Test Again
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Tap Instructions Footnote -->
-            <p id="gaugeInstruction" class="text-xs text-slate-400 font-medium mt-4 flex items-center gap-1.5">
-                <i class="fa-solid fa-hand-pointer text-brand-400"></i> Tap circle to measure real-time connection bandwidth
-            </p>
-        </div>
-
-        <div class="w-full grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            
-            <!-- Ping Metric Card -->
-            <div id="cardPing" class="glass-card glass-card-hover p-4 rounded-2xl flex flex-col justify-between border-slate-800 relative overflow-hidden">
-                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-400"></i> Latency (Ping)</span>
-                    <span id="pingBadge" class="hidden w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="valPing" class="font-mono text-2xl sm:text-3xl font-bold text-white">--</span>
-                    <span class="text-xs font-medium text-slate-400">ms</span>
-                </div>
-            </div>
-
-            <!-- Jitter Metric Card -->
-            <div id="cardJitter" class="glass-card glass-card-hover p-4 rounded-2xl flex flex-col justify-between border-slate-800 relative overflow-hidden">
-                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-wave-square text-purple-400"></i> Jitter</span>
-                    <span id="jitterBadge" class="hidden w-2 h-2 rounded-full bg-purple-400 animate-pulse"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="valJitter" class="font-mono text-2xl sm:text-3xl font-bold text-white">--</span>
-                    <span class="text-xs font-medium text-slate-400">ms</span>
-                </div>
-            </div>
-
-            <!-- Download Metric Card -->
-            <div id="cardDownload" class="glass-card glass-card-hover p-4 rounded-2xl flex flex-col justify-between border-slate-800 relative overflow-hidden">
-                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-arrow-down text-cyan-400"></i> Download</span>
-                    <span id="downloadBadge" class="hidden w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="valDownload" class="font-mono text-2xl sm:text-3xl font-bold text-white">--</span>
-                    <span class="text-xs font-medium text-slate-400">Mbps</span>
-                </div>
-            </div>
-
-            <!-- Upload Metric Card -->
-            <div id="cardUpload" class="glass-card glass-card-hover p-4 rounded-2xl flex flex-col justify-between border-slate-800 relative overflow-hidden">
-                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-arrow-up text-indigo-400"></i> Upload</span>
-                    <span id="uploadBadge" class="hidden w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span id="valUpload" class="font-mono text-2xl sm:text-3xl font-bold text-white">--</span>
-                    <span class="text-xs font-medium text-slate-400">Mbps</span>
-                </div>
-            </div>
-
-        </div>
-
-        <div id="qualitySummaryPanel" class="w-full glass-card rounded-2xl p-6 border-slate-800 hidden transition-all duration-500">
-            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-chart-line text-brand-400"></i> Network Suitability Assessment
-            </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                
-                <!-- 4K Video Capability -->
-                <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800 flex items-center gap-3">
-                    <div id="icon4k" class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-tv"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-medium text-slate-400">4K Video Streaming</div>
-                        <div id="status4k" class="text-sm font-bold text-slate-200">Excellent</div>
-                    </div>
-                </div>
-
-                <!-- Gaming Capability -->
-                <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800 flex items-center gap-3">
-                    <div id="iconGaming" class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-gamepad"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-medium text-slate-400">Online Gaming</div>
-                        <div id="statusGaming" class="text-sm font-bold text-slate-200">Low Latency</div>
-                    </div>
-                </div>
-
-                <!-- Video Calling Capability -->
-                <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800 flex items-center gap-3">
-                    <div id="iconCalls" class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
-                        <i class="fa-solid fa-video"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-medium text-slate-400">HD Video Calls</div>
-                        <div id="statusCalls" class="text-sm font-bold text-slate-200">Smooth & Clear</div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-    </main>
-
-    <!-- History Drawer Backdrop -->
-    <div id="historyDrawerBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-
-    <!-- History Drawer Content -->
-    <aside id="historyDrawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-900/95 border-l border-slate-800 z-50 p-6 flex flex-col justify-between translate-x-full transition-transform duration-300 ease-out shadow-2xl">
-        <div>
-            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-clock-rotate-left text-brand-400"></i>
-                    <h2 class="font-bold text-lg text-white">Test History</h2>
-                </div>
-                <button id="closeHistoryBtn" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <!-- Saved Results List Container -->
-            <div id="historyList" class="mt-4 space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
-                <!-- Dynamic history items inserted here -->
-                <div class="text-center py-12 text-slate-500 text-sm">
-                    No speed tests saved yet. Run your first test!
-                </div>
-            </div>
-        </div>
-
-        <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <button id="clearHistoryBtn" class="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-950/30 transition-colors">
-                <i class="fa-solid fa-trash-can"></i> Clear History
-            </button>
-            <span class="text-[11px] text-slate-500">Saved locally</span>
-        </div>
-    </aside>
-
-    <div id="toast" class="fixed bottom-6 right-6 z-50 glass-card px-4 py-3 rounded-xl border border-brand-500/30 text-xs font-medium text-slate-200 flex items-center gap-2.5 transform translate-y-20 opacity-0 transition-all duration-300 shadow-xl pointer-events-none">
-        <i id="toastIcon" class="fa-solid fa-circle-info text-brand-400"></i>
-        <span id="toastMsg">Notification message</span>
+    <!-- Metrics Summary -->
+    <div class="results-card" id="resultsCard">
+      <div class="metric-item">
+        <span class="metric-label">Ping</span>
+        <span class="metric-value" id="pingVal">-- ms</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Download</span>
+        <span class="metric-value" id="downloadVal">-- Mbps</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Upload</span>
+        <span class="metric-value" id="uploadVal">-- Mbps</span>
+      </div>
     </div>
+  </div>
 
-    <footer class="relative z-10 border-t border-slate-800/60 py-6 text-center text-xs text-slate-500">
-        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span>&copy; 2026 PulseSpeed. Interactive Wi-Fi Network Diagnostic Tool.</span>
-            <div class="flex items-center gap-4 text-slate-400">
-                <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-brand-400"></i> Private & Safe</span>
-                <span class="flex items-center gap-1"><i class="fa-solid fa-gauge-high text-violetGlow"></i> Zero Overhead</span>
-            </div>
-        </div>
-    </footer>
+  <script>
+    const gaugeWrapper = document.getElementById('gaugeWrapper');
+    const progressCircle = document.getElementById('progressCircle');
+    const statusText = document.getElementById('statusText');
+    const speedNumber = document.getElementById('speedNumber');
+    const resultsCard = document.getElementById('resultsCard');
+    
+    const pingVal = document.getElementById('pingVal');
+    const downloadVal = document.getElementById('downloadVal');
+    const uploadVal = document.getElementById('uploadVal');
 
-    <script>
-        const AppState = {
-            status: 'IDLE', // IDLE | PING | DOWNLOAD | UPLOAD | COMPLETE
-            preset: 'wifi6',
-            results: {
-                ping: 0,
-                jitter: 0,
-                download: 0,
-                upload: 0
-            },
-            history: []
-        };
+    const CIRCUMFERENCE = 2 * Math.PI * 120; // 753.98
 
-        // Preset performance profiles (simulating realistic network conditions)
-        const PRESETS = {
-            fiber:     { targetPing: 8,   jitter: 2,  targetDown: 940, targetUp: 880, variance: 0.05 },
-            wifi6:     { targetPing: 16,  jitter: 3,  targetDown: 310, targetUp: 55,  variance: 0.08 },
-            broadband: { targetPing: 28,  jitter: 6,  targetDown: 98,  targetUp: 22,  variance: 0.10 },
-            mobile5g:  { targetPing: 42,  jitter: 12, targetDown: 58,  targetUp: 14,  variance: 0.18 },
-            public:    { targetPing: 85,  jitter: 25, targetDown: 14,  targetUp: 3.5, variance: 0.25 }
-        };
+    function setProgress(percent) {
+      const offset = CIRCUMFERENCE - (percent / 100 * CIRCUMFERENCE);
+      progressCircle.style.strokeDashoffset = offset;
+    }
 
-        // SVG Circle Circumference Calculation (r = 100 => 2 * PI * 100)
-        const CIRCUMFERENCE = 628.3;
+    // --- Real Network Measurements ---
 
-        const elements = {
-            gaugeContainer: document.getElementById('gaugeContainer'),
-            gaugeProgress: document.getElementById('gaugeProgress'),
-            idleState: document.getElementById('idleState'),
-            testingState: document.getElementById('testingState'),
-            completeState: document.getElementById('completeState'),
-            liveSpeedNumber: document.getElementById('liveSpeedNumber'),
-            finalSpeedNumber: document.getElementById('finalSpeedNumber'),
-            testStatusLabel: document.getElementById('testStatusLabel'),
-            speedUnit: document.getElementById('speedUnit'),
-            phaseProgressBar: document.getElementById('phaseProgressBar'),
-            networkPreset: document.getElementById('networkPreset'),
-            gaugeInstruction: document.getElementById('gaugeInstruction'),
-            
-            // Cards
-            valPing: document.getElementById('valPing'),
-            valJitter: document.getElementById('valJitter'),
-            valDownload: document.getElementById('valDownload'),
-            valUpload: document.getElementById('valUpload'),
-            cardPing: document.getElementById('cardPing'),
-            cardJitter: document.getElementById('cardJitter'),
-            cardDownload: document.getElementById('cardDownload'),
-            cardUpload: document.getElementById('cardUpload'),
-            pingBadge: document.getElementById('pingBadge'),
-            jitterBadge: document.getElementById('jitterBadge'),
-            downloadBadge: document.getElementById('downloadBadge'),
-            uploadBadge: document.getElementById('uploadBadge'),
+    async function measurePing() {
+      const start = performance.now();
+      await fetch('https://speed.cloudflare.com/__down?bytes=0', { cache: 'no-store' });
+      return Math.round(performance.now() - start);
+    }
 
-            // Quality
-            qualitySummaryPanel: document.getElementById('qualitySummaryPanel'),
-            status4k: document.getElementById('status4k'),
-            statusGaming: document.getElementById('statusGaming'),
-            statusCalls: document.getElementById('statusCalls'),
+    async function measureDownload(onProgress) {
+      const response = await fetch('https://speed.cloudflare.com/__down?bytes=25000000', { cache: 'no-store' }); // 25MB Payload
+      const reader = response.body.getReader();
+      
+      let receivedBytes = 0;
+      const startTime = performance.now();
+      const totalBytes = 25000000;
 
-            // Drawer
-            historyDrawerBtn: document.getElementById('historyDrawerBtn'),
-            closeHistoryBtn: document.getElementById('closeHistoryBtn'),
-            historyDrawer: document.getElementById('historyDrawer'),
-            historyDrawerBackdrop: document.getElementById('historyDrawerBackdrop'),
-            historyList: document.getElementById('historyList'),
-            clearHistoryBtn: document.getElementById('clearHistoryBtn'),
-            historyBadge: document.getElementById('historyBadge'),
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-            // Toast
-            toast: document.getElementById('toast'),
-            toastMsg: document.getElementById('toastMsg'),
-            toastIcon: document.getElementById('toastIcon')
-        };
+        receivedBytes += value.length;
+        const duration = (performance.now() - startTime) / 1000;
+        const currentMbps = ((receivedBytes * 8) / 1000000) / duration;
+        const progressPercent = (receivedBytes / totalBytes) * 100;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadHistory();
-            setupEventListeners();
-            resetUI();
+        onProgress(currentMbps.toFixed(1), progressPercent);
+      }
+
+      const totalDuration = (performance.now() - startTime) / 1000;
+      return (((receivedBytes * 8) / 1000000) / totalDuration).toFixed(1);
+    }
+
+    async function measureUpload() {
+      const dummyData = new Uint8Array(5 * 1024 * 1024); // 5MB Payload
+      const blob = new Blob([dummyData]);
+      const startTime = performance.now();
+
+      await fetch('https://speed.cloudflare.com/__up', {
+        method: 'POST',
+        body: blob,
+        cache: 'no-store'
+      });
+
+      const duration = (performance.now() - startTime) / 1000;
+      return (((blob.size * 8) / 1000000) / duration).toFixed(1);
+    }
+
+    // --- Interaction Controller ---
+
+    gaugeWrapper.addEventListener('click', async () => {
+      if (gaugeWrapper.classList.contains('testing')) return;
+
+      // Lock UI state
+      gaugeWrapper.classList.add('testing');
+      resultsCard.classList.remove('active');
+      setProgress(0);
+      
+      try {
+        // Phase 1: Ping
+        statusText.innerText = "TESTING PING";
+        setProgress(15);
+        const ping = await measurePing();
+        pingVal.innerText = `${ping} ms`;
+
+        // Phase 2: Download
+        statusText.innerText = "TESTING DOWNLOAD";
+        const downloadSpeed = await measureDownload((liveMbps, progressPercent) => {
+          speedNumber.innerText = liveMbps;
+          setProgress(15 + (progressPercent * 0.6)); // Scale progress visually
         });
+        downloadVal.innerText = `${downloadSpeed} Mbps`;
 
-        function setupEventListeners() {
-            // Touch/Click on center gauge triggers test
-            elements.gaugeContainer.addEventListener('click', () => {
-                if (AppState.status === 'IDLE' || AppState.status === 'COMPLETE') {
-                    startSpeedTest();
-                }
-            });
+        // Phase 3: Upload
+        statusText.innerText = "TESTING UPLOAD";
+        setProgress(85);
+        const uploadSpeed = await measureUpload();
+        uploadVal.innerText = `${uploadSpeed} Mbps`;
+        setProgress(100);
 
-            // Preset change
-            elements.networkPreset.addEventListener('change', (e) => {
-                AppState.preset = e.target.value;
-                if (AppState.status === 'COMPLETE') {
-                    resetUI();
-                }
-            });
+        // Completion
+        statusText.innerText = "TAP TO RESTART";
+        speedNumber.innerText = downloadSpeed;
+        resultsCard.classList.add('active');
 
-            // History Drawer Open/Close
-            elements.historyDrawerBtn.addEventListener('click', openHistoryDrawer);
-            elements.closeHistoryBtn.addEventListener('click', closeHistoryDrawer);
-            elements.historyDrawerBackdrop.addEventListener('click', closeHistoryDrawer);
-            elements.clearHistoryBtn.addEventListener('click', clearHistory);
-        }
-
-        function showToast(msg, iconClass = 'fa-circle-info text-brand-400') {
-            elements.toastMsg.innerText = msg;
-            elements.toastIcon.className = `fa-solid ${iconClass}`;
-            elements.toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-            
-            setTimeout(() => {
-                elements.toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-            }, 3000);
-        }
-
-        function setGaugeOffset(percent) {
-            const clampPercent = Math.min(Math.max(percent, 0), 100);
-            const offset = CIRCUMFERENCE - (clampPercent / 100) * CIRCUMFERENCE;
-            elements.gaugeProgress.style.strokeDashoffset = offset;
-        }
-
-        function resetUI() {
-            AppState.status = 'IDLE';
-            setGaugeOffset(0);
-
-            // Display Idle state overlay
-            elements.idleState.classList.remove('hidden');
-            elements.testingState.classList.add('hidden');
-            elements.completeState.classList.add('hidden');
-
-            // Reset Card Values
-            elements.valPing.innerText = '--';
-            elements.valJitter.innerText = '--';
-            elements.valDownload.innerText = '--';
-            elements.valUpload.innerText = '--';
-
-            // Clear Active Card Highlighting
-            clearActiveCardHighlights();
-
-            // Hide summary
-            elements.qualitySummaryPanel.classList.add('hidden');
-            elements.gaugeInstruction.style.opacity = '1';
-        }
-
-        function clearActiveCardHighlights() {
-            [elements.cardPing, elements.cardJitter, elements.cardDownload, elements.cardUpload].forEach(card => {
-                card.classList.remove('border-brand-500/80', 'bg-brand-950/20');
-            });
-            [elements.pingBadge, elements.jitterBadge, elements.downloadBadge, elements.uploadBadge].forEach(badge => {
-                badge.classList.add('hidden');
-            });
-        }
-
-        function highlightActiveCard(card, badge) {
-            clearActiveCardHighlights();
-            card.classList.add('border-brand-500/80', 'bg-brand-950/20');
-            badge.classList.remove('hidden');
-        }
-
-        async function startSpeedTest() {
-            AppState.status = 'RUNNING';
-            const config = PRESETS[AppState.preset] || PRESETS.wifi6;
-
-            // UI Transitions
-            elements.idleState.classList.add('hidden');
-            elements.completeState.classList.add('hidden');
-            elements.testingState.classList.remove('hidden');
-            elements.qualitySummaryPanel.classList.add('hidden');
-            elements.gaugeInstruction.style.opacity = '0.4';
-
-            // Phase 1: Latency & Jitter Test
-            await runPingPhase(config);
-
-            // Phase 2: Download Throughput Test
-            await runDownloadPhase(config);
-
-            // Phase 3: Upload Throughput Test
-            await runUploadPhase(config);
-
-            // Complete Sequence
-            finishSpeedTest();
-        }
-
-        function runPingPhase(config) {
-            return new Promise((resolve) => {
-                AppState.status = 'PING';
-                elements.testStatusLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> TESTING LATENCY...`;
-                elements.speedUnit.innerText = 'ms (PING)';
-                highlightActiveCard(elements.cardPing, elements.pingBadge);
-
-                let duration = 1800; // 1.8 seconds
-                let startTime = Date.now();
-
-                let interval = setInterval(() => {
-                    let elapsed = Date.now() - startTime;
-                    let progress = Math.min(elapsed / duration, 1);
-                    
-                    // Animate gauge ring pulse
-                    setGaugeOffset(progress * 25);
-                    elements.phaseProgressBar.style.width = `${progress * 100}%`;
-
-                    // Simulated live ping fluctuation
-                    let tempPing = (config.targetPing + (Math.random() * 6 - 3)).toFixed(1);
-                    elements.liveSpeedNumber.innerText = tempPing;
-
-                    if (progress >= 1) {
-                        clearInterval(interval);
-                        AppState.results.ping = Math.round(config.targetPing + (Math.random() * 2 - 1));
-                        AppState.results.jitter = Math.round(config.jitter + (Math.random() * 2 - 1));
-                        
-                        elements.valPing.innerText = AppState.results.ping;
-                        elements.valJitter.innerText = AppState.results.jitter;
-                        resolve();
-                    }
-                }, 50);
-            });
-        }
-
-        function runDownloadPhase(config) {
-            return new Promise((resolve) => {
-                AppState.status = 'DOWNLOAD';
-                elements.testStatusLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span> TESTING DOWNLOAD...`;
-                elements.speedUnit.innerText = 'Mbps';
-                highlightActiveCard(elements.cardDownload, elements.downloadBadge);
-
-                let duration = 3500; // 3.5 seconds
-                let startTime = Date.now();
-                let currentSpeed = 0;
-
-                let interval = setInterval(() => {
-                    let elapsed = Date.now() - startTime;
-                    let progress = Math.min(elapsed / duration, 1);
-                    elements.phaseProgressBar.style.width = `${progress * 100}%`;
-
-                    // Acceleration physics curve for speed ramp up
-                    let target = config.targetDown;
-                    let ramp = Math.pow(progress, 0.7); // Easing ramp
-                    let noise = (Math.random() - 0.5) * (target * config.variance);
-                    
-                    currentSpeed = Math.max(0.1, (target * ramp) + noise);
-                    
-                    // Map speed ratio to gauge progress circle (0 - 100%)
-                    let maxScale = Math.max(target * 1.2, 100);
-                    let gaugePercent = (currentSpeed / maxScale) * 100;
-                    setGaugeOffset(gaugePercent);
-
-                    elements.liveSpeedNumber.innerText = currentSpeed.toFixed(1);
-
-                    if (progress >= 1) {
-                        clearInterval(interval);
-                        AppState.results.download = Number(currentSpeed.toFixed(1));
-                        elements.valDownload.innerText = AppState.results.download;
-                        resolve();
-                    }
-                }, 40);
-            });
-        }
-
-        function runUploadPhase(config) {
-            return new Promise((resolve) => {
-                AppState.status = 'UPLOAD';
-                elements.testStatusLabel.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> TESTING UPLOAD...`;
-                elements.speedUnit.innerText = 'Mbps';
-                highlightActiveCard(elements.cardUpload, elements.uploadBadge);
-
-                let duration = 3000; // 3 seconds
-                let startTime = Date.now();
-                let currentSpeed = 0;
-
-                let interval = setInterval(() => {
-                    let elapsed = Date.now() - startTime;
-                    let progress = Math.min(elapsed / duration, 1);
-                    elements.phaseProgressBar.style.width = `${progress * 100}%`;
-
-                    let target = config.targetUp;
-                    let ramp = Math.pow(progress, 0.8);
-                    let noise = (Math.random() - 0.5) * (target * config.variance);
-
-                    currentSpeed = Math.max(0.1, (target * ramp) + noise);
-
-                    let maxScale = Math.max(target * 1.3, 20);
-                    let gaugePercent = (currentSpeed / maxScale) * 100;
-                    setGaugeOffset(gaugePercent);
-
-                    elements.liveSpeedNumber.innerText = currentSpeed.toFixed(1);
-
-                    if (progress >= 1) {
-                        clearInterval(interval);
-                        AppState.results.upload = Number(currentSpeed.toFixed(1));
-                        elements.valUpload.innerText = AppState.results.upload;
-                        resolve();
-                    }
-                }, 40);
-            });
-        }
-
-        function finishSpeedTest() {
-            AppState.status = 'COMPLETE';
-            clearActiveCardHighlights();
-            setGaugeOffset(100);
-
-            // Switch Inner Overlay to Complete state
-            elements.testingState.classList.add('hidden');
-            elements.completeState.classList.remove('hidden');
-            elements.finalSpeedNumber.innerText = AppState.results.download;
-
-            // Evaluate Quality Badges
-            evaluateNetworkQuality(AppState.results.download, AppState.results.ping);
-            elements.qualitySummaryPanel.classList.remove('hidden');
-
-            // Save Result to Local Storage
-            saveResultToHistory(AppState.results);
-
-            showToast('Speed test finished successfully!', 'fa-circle-check text-emerald-400');
-        }
-
-        function evaluateNetworkQuality(download, ping) {
-            // 4K Video Quality
-            if (download >= 25) {
-                elements.status4k.innerText = 'Excellent (4K / 8K)';
-                elements.status4k.className = 'text-sm font-bold text-emerald-400';
-            } else if (download >= 10) {
-                elements.status4k.innerText = 'Good (HD 1080p)';
-                elements.status4k.className = 'text-sm font-bold text-amber-400';
-            } else {
-                elements.status4k.innerText = 'Limited (SD Only)';
-                elements.status4k.className = 'text-sm font-bold text-rose-400';
-            }
-
-            // Online Gaming Quality
-            if (ping <= 25 && download >= 15) {
-                elements.statusGaming.innerText = 'Pro Low Latency';
-                elements.statusGaming.className = 'text-sm font-bold text-emerald-400';
-            } else if (ping <= 60) {
-                elements.statusGaming.innerText = 'Playable';
-                elements.statusGaming.className = 'text-sm font-bold text-amber-400';
-            } else {
-                elements.statusGaming.innerText = 'High Lag Expected';
-                elements.statusGaming.className = 'text-sm font-bold text-rose-400';
-            }
-
-            // Video Calling
-            if (download >= 10 && ping <= 50) {
-                elements.statusCalls.innerText = 'Crystal Clear HD';
-                elements.statusCalls.className = 'text-sm font-bold text-emerald-400';
-            } else {
-                elements.statusCalls.innerText = 'Possible Stutter';
-                elements.statusCalls.className = 'text-sm font-bold text-amber-400';
-            }
-        }
-
-        function saveResultToHistory(res) {
-            const entry = {
-                id: Date.now(),
-                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                preset: elements.networkPreset.options[elements.networkPreset.selectedIndex].text.split('(')[0].trim(),
-                ping: res.ping,
-                download: res.download,
-                upload: res.upload
-            };
-
-            AppState.history.unshift(entry);
-            if (AppState.history.length > 20) AppState.history.pop();
-
-            localStorage.setItem('pulsespeed_history', JSON.stringify(AppState.history));
-            renderHistoryUI();
-        }
-
-        function loadHistory() {
-            try {
-                const saved = localStorage.getItem('pulsespeed_history');
-                if (saved) {
-                    AppState.history = JSON.parse(saved);
-                }
-            } catch (e) {
-                AppState.history = [];
-            }
-            renderHistoryUI();
-        }
-
-        function renderHistoryUI() {
-            elements.historyBadge.innerText = AppState.history.length;
-
-            if (AppState.history.length === 0) {
-                elements.historyList.innerHTML = `
-                    <div class="text-center py-12 text-slate-500 text-sm flex flex-col items-center gap-2">
-                        <i class="fa-solid fa-inbox text-2xl text-slate-600"></i>
-                        <span>No speed tests recorded yet.</span>
-                    </div>`;
-                return;
-            }
-
-            elements.historyList.innerHTML = AppState.history.map(item => `
-                <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between hover:border-slate-700 transition-colors">
-                    <div>
-                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                            ${item.preset}
-                        </div>
-                        <div class="text-[11px] text-slate-400 mt-0.5">
-                            <i class="fa-regular fa-clock"></i> ${item.date} &bull; <span class="text-amber-400">${item.ping}ms Ping</span>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-mono text-sm font-extrabold text-cyan-400">
-                            ↓ ${item.download} <span class="text-[10px] text-slate-400">Mbps</span>
-                        </div>
-                        <div class="font-mono text-xs text-indigo-400">
-                            ↑ ${item.upload} <span class="text-[10px] text-slate-400">Mbps</span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function clearHistory() {
-            AppState.history = [];
-            localStorage.removeItem('pulsespeed_history');
-            renderHistoryUI();
-            showToast('Test history cleared', 'fa-trash-can text-rose-400');
-        }
-
-        function openHistoryDrawer() {
-            elements.historyDrawer.classList.remove('translate-x-full');
-            elements.historyDrawerBackdrop.classList.remove('opacity-0', 'pointer-events-none');
-        }
-
-        function closeHistoryDrawer() {
-            elements.historyDrawer.classList.add('translate-x-full');
-            elements.historyDrawerBackdrop.classList.add('opacity-0', 'pointer-events-none');
-        }
-    </script>
+      } catch (err) {
+        statusText.innerText = "TEST FAILED";
+        console.error(err);
+      } finally {
+        gaugeWrapper.classList.remove('testing');
+      }
+    });
+  </script>
 </body>
 </html>
